@@ -1,3 +1,2 @@
-# PSI-Projekt
-Car Rental
-*tabela
+#Car Rental
+* tabela
