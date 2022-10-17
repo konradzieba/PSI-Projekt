@@ -1,2 +1,2 @@
 # Car Rental
-* <img src="db_schema.png"/>
+<img src="db_schema.png"/>
