@@ -14,6 +14,6 @@
 ## Database model
 ![image](https://github.com/konradzieba/PSI-Projekt/blob/main/db_schema.png)
 ## Authors
-[Konrad Zięba](https://github.com/konradzieba/)
+[Konrad Zięba](https://github.com/konradzieba/)</br>
 [Arkadiusz Witasik](https://github.com/arkadiuszwitasik/)
 
