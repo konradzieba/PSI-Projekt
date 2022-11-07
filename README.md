@@ -1,6 +1,6 @@
 # Car Rental System
 
-[![Last commit](https://img.shields.io/github/last-commit/KonradZieba/PSI-Projekt?style=for-the-badge)
+![Last commit](https://img.shields.io/github/last-commit/KonradZieba/PSI-Projekt?style=for-the-badge)
 
 ## Table of Contents
 * [Technologies](#technologies)
