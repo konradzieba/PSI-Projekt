@@ -1,6 +1,12 @@
 from django.db import models
-from django.core.validators import MinLengthValidator, MaxLengthValidator, MinValueValidator, MaxValueValidator
+from django.core.validators import MinLengthValidator, MaxLengthValidator, MinValueValidator, MaxValueValidator, ValidationError
 import datetime
+from django.db.models import Q, F
+from django.utils import timezone
+
+def present_date_validator(value):
+    if value < datetime.date.today():
+        raise ValidationError('Rent start date cannot be in past')
 
 
 class Address(models.Model):
@@ -39,7 +45,7 @@ class Client(models.Model):
                              validators=[MinLengthValidator(11), MinLengthValidator(11)])
     driver_licence_number = models.CharField(max_length=13, blank=False, null=False,
                                              validators=[MinLengthValidator(11), MinLengthValidator(11)], unique=True)
-    phone_numer = models.CharField(max_length=15, blank=False, null=False,
+    phone_number = models.CharField(max_length=15, blank=False, null=False,
                                    validators=[MinLengthValidator(9), MinLengthValidator(15)], unique=True)
     email = models.EmailField(max_length=100, blank=False, null=False, unique=True)
     gender = models.CharField(max_length=2, choices=GENDER_CHOICES, default=MALE, blank=False, null=False)
@@ -145,12 +151,14 @@ class VehicleInformation(models.Model):
 class Vehicle(models.Model):
     SUV = 'SUV'
     MINIBUS = 'MINIBUS'
-    LIMUZYNA = 'LIMUZYNA'
+    LIMOUSINE = 'LIMOUSINE'
     COUPE = 'COUPE'
     KOMBI = 'KOMBI'
-    CARTYPE_CHOICES = ((SUV, 'Suv'), (MINIBUS, 'Minibus'), (LIMUZYNA, 'Limuzyna'), (COUPE, 'Coupe'), (KOMBI, 'Kombi'),)
+    CITY_CAR = 'CITY CARS'
 
-    car_type = models.CharField(max_length=10, choices=CARTYPE_CHOICES, blank=False, null=False, default=KOMBI)
+    CARTYPE_CHOICES = ((SUV, 'Suv'), (MINIBUS, 'Minibus'), (LIMOUSINE, 'Limousine'), (COUPE, 'Coupe'), (KOMBI, 'Kombi'), (CITY_CAR, 'City Cars'))
+
+    car_type = models.CharField(max_length=15, choices=CARTYPE_CHOICES, blank=False, null=False, default=CITY_CAR)
     status = models.BooleanField("Is vehicle available?", default=1, blank=True, null=False)
     mark = models.CharField(max_length=45, blank=False, null=False)
     model = models.CharField(max_length=45, blank=False, null=False)
@@ -170,7 +178,7 @@ class Vehicle(models.Model):
 
 
 class Rent(models.Model):
-    rent_start_date = models.DateField(blank=False, null=False)
+    rent_start_date = models.DateField(blank=False, null=False, validators=[present_date_validator])
     rent_end_date = models.DateField(blank=False, null=False)
     final_price = models.DecimalField(max_digits=8, decimal_places=2)
     discount_in_perc = models.SmallIntegerField(default=0, blank=True, null=True,
@@ -181,6 +189,10 @@ class Rent(models.Model):
     payment = models.OneToOneField(Payment, related_name='payments', blank=True, null=True, on_delete=models.CASCADE)
     vehicle = models.OneToOneField(Vehicle, related_name='vehicles', blank=True, null=True, on_delete=models.CASCADE)
     client = models.ForeignKey(Client, related_name='clients', blank=True, null=True, on_delete=models.CASCADE)
+
+    def clean(self):
+        if self.rent_end_date < self.rent_start_date:
+            raise ValidationError({'rent_end_date': 'Rent end date can not be before rent start date'})
 
     def __str__(self):
         if self.discount_in_perc == 0:
@@ -195,3 +207,5 @@ class Rent(models.Model):
                f'Km Limit: {self.km_limit}, ' \
                f'Price: {self.final_price}PLN , ' \
                f'Discount: {self.discount_in_perc}%'
+
+
