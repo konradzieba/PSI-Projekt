@@ -10,7 +10,7 @@
 * MySQL
 ## Database model
 ![image](https://github.com/konradzieba/PSI-Projekt/blob/main/db_schema.png)
-## Authors: 
+## Authors
 * Konrad Zięba
 * Arkadiusz Witasik
 
