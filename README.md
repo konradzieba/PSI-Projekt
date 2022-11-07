@@ -9,8 +9,9 @@
 * Django REST Framework
 * MySQL
 ## Database model
-![image](https://github.com/konradzieba/PSI-Projekt/edit/main/db_schema.png)
+![image]
+(https://github.com/konradzieba/PSI-Projekt/blob/main/db_schema.png)
 ## Authors: 
-Konrad Zięba
-Arkadiusz Witasik
+* Konrad Zięba
+* Arkadiusz Witasik
 
