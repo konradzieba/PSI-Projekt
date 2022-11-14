@@ -1,8 +1,8 @@
 from django.db import models
-from django.core.validators import MinLengthValidator, MaxLengthValidator, MinValueValidator, MaxValueValidator, ValidationError
+from django.core.validators import MinLengthValidator, MaxLengthValidator, MinValueValidator, MaxValueValidator, \
+    ValidationError
 import datetime
-from django.db.models import Q, F
-from django.utils import timezone
+
 
 def present_date_validator(value):
     if value < datetime.date.today():
@@ -23,10 +23,15 @@ class Address(models.Model):
                               validators=[MinLengthValidator(2), MaxLengthValidator(60)])
     apartment_number = models.CharField(max_length=7, blank=False, null=False,
                                         validators=[MinLengthValidator(1), MaxLengthValidator(7)])
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=False)
+
+    def save(self, *args, **kwargs):
+        self.full_name = self.zip_code + " " + self.town + " " + self.country + ", " + self.street + " " + self.apartment_number
+        super(Address, self).save(*args, **kwargs)
 
     def __str__(self):
         return f'Address ID: {self.pk}, ' \
-               f'{self.zip_code}' \
+               f' {self.zip_code}' \
                f' {self.town}' \
                f' ({self.street}' \
                f' {self.apartment_number})' \
@@ -46,10 +51,15 @@ class Client(models.Model):
     driver_licence_number = models.CharField(max_length=13, blank=False, null=False,
                                              validators=[MinLengthValidator(11), MinLengthValidator(11)], unique=True)
     phone_number = models.CharField(max_length=15, blank=False, null=False,
-                                   validators=[MinLengthValidator(9), MinLengthValidator(15)], unique=True)
+                                    validators=[MinLengthValidator(9), MinLengthValidator(15)], unique=True)
     email = models.EmailField(max_length=100, blank=False, null=False, unique=True)
     gender = models.CharField(max_length=2, choices=GENDER_CHOICES, default=MALE, blank=False, null=False)
     address = models.OneToOneField(Address, related_name='addresses', blank=True, null=True, on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=False)
+
+    def save(self, *args, **kwargs):
+        self.full_name = self.first_name + " " + self.last_name
+        super(Client, self).save(*args, **kwargs)
 
     def __str__(self):
         return f'Client ID: {self.pk}, ' \
@@ -59,9 +69,17 @@ class Client(models.Model):
 
 
 class Payment(models.Model):
-    # cash = models.SmallIntegerField(blank=False, null=False)
     cash = models.BooleanField("Was payed by cash?", default=1, blank=True, null=True)
     card_number = models.CharField("Card number [if cash unchecked]", max_length=45, blank=True, null=True)
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=False)
+
+    def save(self, *args, **kwargs):
+        if self.cash == 1:
+            self.full_name = 'CASH'
+            super(Payment, self).save(*args, **kwargs)
+        else:
+            self.full_name = 'CREDIT CARD' + ": " + self.card_number
+            super(Payment, self).save(*args, **kwargs)
 
     def __str__(self):
         if self.cash == 1:
@@ -103,6 +121,13 @@ class VehicleSpecification(models.Model):
                                             validators=[MinValueValidator(2), MaxValueValidator(9)])
     boot_capacity = models.IntegerField("Boot Capacity", blank=False, null=False,
                                         validators=[MinValueValidator(100), MaxValueValidator(2000)])
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=True)
+
+    def save(self, *args, **kwargs):
+        self.full_name = self.color + ", " + self.gear_box + ", " + self.type_of_drive + ", " + self.type_of_fuel + \
+            f'{self.avg_fuel_consumption} per 100km' + ", " + self.num_of_doors + " doors" + ", " + self.boot_capacity + \
+            " kg" + ", " + self.num_of_seats + " seats"
+        super(VehicleSpecification, self).save(*args, **kwargs)
 
     def __str__(self):
         return f'VehSpec ID: {self.pk}, ' \
@@ -130,22 +155,25 @@ class VehicleInformation(models.Model):
         300000)])  # Mileage < 200 000 km imposed by company
     last_service = models.IntegerField(blank=False, null=True, validators=[MinValueValidator(5000), MaxValueValidator(
         300000)])  # Mileage during last service inside of company [IN KM]
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=True)
+
+    def save(self, *args, **kwargs):
+        self.full_name = self.year_of_production + ", " + self.license_plate_number + ", " + self.vin_number
+        super(VehicleInformation, self).save(*args, **kwargs)
 
     def __str__(self):
-        km_to_service = (int(self.last_service + 15000)) - int(self.mileage)
+        # km_to_service = (int(self.last_service + 15000)) - int(self.mileage)
         if self.condition_comment is not None:
-            return f'VehSpec ID: {self.pk}, ' \
+            return f'VehInfo ID: {self.pk}, ' \
                    f'Plate: {self.license_plate_number}, ' \
                    f'Production: {self.year_of_production}, ' \
                    f'Mileage: {self.mileage}, ' \
-                   f'To Service: {km_to_service} ' \
                    f'*CONTAIN COMMENT*'
 
         return f'VehSpec ID: {self.pk}, ' \
                f'Plate: {self.license_plate_number}, ' \
                f'Production: {self.year_of_production}, ' \
-               f'Mileage: {self.mileage}, ' \
-               f'Till Service: {km_to_service}'
+               f'Mileage: {self.mileage}, '
 
 
 class Vehicle(models.Model):
@@ -156,7 +184,8 @@ class Vehicle(models.Model):
     KOMBI = 'KOMBI'
     CITY_CAR = 'CITY CARS'
 
-    CARTYPE_CHOICES = ((SUV, 'Suv'), (MINIBUS, 'Minibus'), (LIMOUSINE, 'Limousine'), (COUPE, 'Coupe'), (KOMBI, 'Kombi'), (CITY_CAR, 'City Cars'))
+    CARTYPE_CHOICES = ((SUV, 'Suv'), (MINIBUS, 'Minibus'), (LIMOUSINE, 'Limousine'), (COUPE, 'Coupe'), (KOMBI, 'Kombi'),
+                       (CITY_CAR, 'City Cars'))
 
     car_type = models.CharField(max_length=15, choices=CARTYPE_CHOICES, blank=False, null=False, default=CITY_CAR)
     status = models.BooleanField("Is vehicle available?", default=1, blank=True, null=False)
@@ -164,8 +193,16 @@ class Vehicle(models.Model):
     model = models.CharField(max_length=45, blank=False, null=False)
     price_per_day = models.IntegerField(blank=False, null=False,
                                         validators=[MinValueValidator(100), MaxValueValidator(7500)])
-    vehicle_specification = models.OneToOneField(VehicleSpecification, related_name='specifications', blank=True, null=True, on_delete=models.CASCADE)
-    vehicle_information = models.OneToOneField(VehicleInformation, related_name='informations', blank=True, null=True, on_delete=models.CASCADE)
+    vehicle_specification = models.OneToOneField(VehicleSpecification, related_name='specifications', blank=True,
+                                                 null=True, on_delete=models.CASCADE)
+    vehicle_information = models.OneToOneField(VehicleInformation, related_name='informations', blank=True, null=True,
+                                               on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=True)
+
+    def save(self, *args, **kwargs):
+        self.full_name = f'{self.car_type}', ", " + f'{self.mark}' + ", " + f'{self.model}' + ", " + f'{self.price_per_day}'\
+                         + " per day"
+        super(Vehicle, self).save(*args, **kwargs)
 
     def __str__(self):
         if self.status == 0:
@@ -180,15 +217,23 @@ class Vehicle(models.Model):
 class Rent(models.Model):
     rent_start_date = models.DateField(blank=False, null=False, validators=[present_date_validator])
     rent_end_date = models.DateField(blank=False, null=False)
-    final_price = models.DecimalField(max_digits=8, decimal_places=2)
+    final_price = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, editable=False)
     discount_in_perc = models.SmallIntegerField(default=0, blank=True, null=True,
                                                 validators=[MinValueValidator(0), MaxValueValidator(99)])
-    deposit = models.IntegerField(default=0, blank=True, null=True,
-                                  validators=[MinValueValidator(500), MaxValueValidator(100000)])
+    deposit = models.IntegerField(null=True, blank=True, editable=False)
     km_limit = models.IntegerField(default=0, validators=[MaxValueValidator(999)])
     payment = models.OneToOneField(Payment, related_name='payments', blank=True, null=True, on_delete=models.CASCADE)
     vehicle = models.OneToOneField(Vehicle, related_name='vehicles', blank=True, null=True, on_delete=models.CASCADE)
     client = models.ForeignKey(Client, related_name='clients', blank=True, null=True, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        vehicle_id = self.vehicle.pk
+        days = (self.rent_end_date - self.rent_start_date).days
+        vehicle = Vehicle.objects.get(id=vehicle_id)
+        price = vehicle.price_per_day
+        self.final_price = (int(price) * int(days)) - ((int(price) * (days)) * self.discount_in_perc / 100)
+        self.deposit = int(self.final_price * 0.2)
+        super(Rent, self).save(*args, **kwargs)
 
     def clean(self):
         if self.rent_end_date < self.rent_start_date:
@@ -207,5 +252,3 @@ class Rent(models.Model):
                f'Km Limit: {self.km_limit}, ' \
                f'Price: {self.final_price}PLN , ' \
                f'Discount: {self.discount_in_perc}%'
-
-
