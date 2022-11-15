@@ -1,6 +1,8 @@
+from rest_framework.validators import UniqueValidator
 from .models import Address, Client, Payment, Rent, Vehicle, VehicleInformation, VehicleSpecification
 from rest_framework import serializers
-
+from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 
 
 class AddressSerializer(serializers.ModelSerializer):
@@ -10,7 +12,8 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class ClientSerializer(serializers.ModelSerializer):
-    address = serializers.SlugRelatedField(queryset=Address.objects.all(), slug_field='full_name')
+    address = serializers.SlugRelatedField(queryset=Address.objects.all(), slug_field='full_name', validators=[
+        UniqueValidator(queryset=Client.objects.all(), message="client with this address already exists")])
 
     class Meta:
         model = Client
@@ -39,8 +42,12 @@ class VehicleInformationSerializer(serializers.ModelSerializer):
 
 
 class VehicleSerializer(serializers.ModelSerializer):
-    vehicle_specification = serializers.SlugRelatedField(queryset=VehicleSpecification.objects.all(), slug_field='full_name')
-    vehicle_information = serializers.SlugRelatedField(queryset=VehicleInformation.objects.all(), slug_field='full_name')
+    vehicle_specification = serializers.SlugRelatedField(queryset=VehicleSpecification.objects.all(),
+                                                         slug_field='full_name', validators=[
+            UniqueValidator(queryset=Vehicle.objects.all(), message="vehicle with this specification already exists")])
+    vehicle_information = serializers.SlugRelatedField(queryset=VehicleInformation.objects.all(),
+                                                       slug_field='full_name', validators=[
+            UniqueValidator(queryset=Vehicle.objects.all(), message="vehicle with this information already exists")])
 
     class Meta:
         model = Vehicle
@@ -49,17 +56,62 @@ class VehicleSerializer(serializers.ModelSerializer):
 
 
 class RentSerializer(serializers.ModelSerializer):
-    vehicle = serializers.SlugRelatedField(queryset=Vehicle.objects.all(), slug_field='full_name')
-    client = serializers.SlugRelatedField(queryset=Client.objects.all(), slug_field='full_name')
-    payment = serializers.SlugRelatedField(queryset=Payment.objects.all(), slug_field='full_name')
+    vehicle = serializers.SlugRelatedField(queryset=Vehicle.objects.all(), slug_field='full_name', validators=[
+        UniqueValidator(queryset=Rent.objects.all(), message="rent with this vehicle already exists")])
+    client = serializers.SlugRelatedField(queryset=Client.objects.all(), slug_field='full_name', validators=[
+        UniqueValidator(queryset=Rent.objects.all(), message="rent with this client already exists")])
+    payment = serializers.SlugRelatedField(queryset=Payment.objects.all(), slug_field='full_name', validators=[
+        UniqueValidator(queryset=Rent.objects.all(), message="rent with this payment already exists")])
 
     class Meta:
         model = Rent
         fields = ['url', 'id', 'rent_start_date', 'rent_end_date', 'final_price',
-                  'discount_in_perc', 'deposit', 'km_limit', 'payment', 'vehicle', 'client']
+                  'discount_in_perc', 'deposit', 'km_limit', 'price_per_day', 'number_of_days', 'payment', 'vehicle', 'client']
 
     def validate(self, data):
         if data['rent_start_date'] > data['rent_end_date']:
             raise serializers.ValidationError(
                 {'rent_end_date': 'Rent end date can not be before Rent start date'})
         return data
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['url', 'id', 'first_name', 'last_name', 'username', 'password', 'email']
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        required=True,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password])
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'password', 'password2',
+                  'email', 'first_name', 'last_name')
+        extra_kwargs = {
+            'first_name': {'required': True},
+            'last_name': {'required': True}
+        }
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError(
+                {"password": "Password fields didn't match."})
+        return attrs
+
+    def create(self, validated_data):
+        user = User.objects.create(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name']
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user

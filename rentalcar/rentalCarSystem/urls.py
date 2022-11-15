@@ -1,6 +1,6 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
-
+from .views import UserDetailAPI, RegisterUserAPIView
 
 urlpatterns = [
     path('', views.ApiRoot.as_view(), name=views.ApiRoot.name),
@@ -18,5 +18,8 @@ urlpatterns = [
     path('vehicle_specification/<int:pk>', views.VehicleSpecificationDetail.as_view(), name=views.VehicleSpecificationDetail.name),
     path('vehicle/', views.VehicleList.as_view(), name=views.VehicleList.name),
     path('vehicle/<int:pk>', views.VehicleDetail.as_view(), name=views.VehicleDetail.name),
-
+    path('users/', views.UserList.as_view(), name=views.UserList.name),
+    path('users/<int:pk>/', views.UserDetail.as_view(), name=views.UserDetail.name),
+    path('get-details', UserDetailAPI.as_view()),
+    path('register', RegisterUserAPIView.as_view()),
 ]
