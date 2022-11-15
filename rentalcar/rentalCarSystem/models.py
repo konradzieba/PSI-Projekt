@@ -3,6 +3,10 @@ from django.core.validators import MinLengthValidator, MaxLengthValidator, MinVa
     ValidationError
 import datetime
 
+# from django.db.models import F
+# from django.db.models.signals import pre_delete
+# from django.dispatch import receiver
+# from Tools.demo.mcast import sender
 
 def present_date_validator(value):
     if value < datetime.date.today():
@@ -121,12 +125,10 @@ class VehicleSpecification(models.Model):
                                             validators=[MinValueValidator(2), MaxValueValidator(9)])
     boot_capacity = models.IntegerField("Boot Capacity", blank=False, null=False,
                                         validators=[MinValueValidator(100), MaxValueValidator(2000)])
-    full_name = models.CharField(max_length=500, blank=True, null=True, editable=True)
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=False)
 
     def save(self, *args, **kwargs):
-        self.full_name = self.color + ", " + self.gear_box + ", " + self.type_of_drive + ", " + self.type_of_fuel + \
-            f'{self.avg_fuel_consumption} per 100km' + ", " + self.num_of_doors + " doors" + ", " + self.boot_capacity + \
-            " kg" + ", " + self.num_of_seats + " seats"
+        self.full_name = f'{self.color}, {self.gear_box}, {self.type_of_drive}, {self.type_of_fuel}, {self.avg_fuel_consumption} per 100km, {self.num_of_doors} doors, {self.boot_capacity} kg, {self.num_of_seats} seats'
         super(VehicleSpecification, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -155,10 +157,10 @@ class VehicleInformation(models.Model):
         300000)])  # Mileage < 200 000 km imposed by company
     last_service = models.IntegerField(blank=False, null=True, validators=[MinValueValidator(5000), MaxValueValidator(
         300000)])  # Mileage during last service inside of company [IN KM]
-    full_name = models.CharField(max_length=500, blank=True, null=True, editable=True)
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=False)
 
     def save(self, *args, **kwargs):
-        self.full_name = self.year_of_production + ", " + self.license_plate_number + ", " + self.vin_number
+        self.full_name = f'{self.year_of_production}, {self.license_plate_number}, {self.vin_number}'
         super(VehicleInformation, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -188,7 +190,7 @@ class Vehicle(models.Model):
                        (CITY_CAR, 'City Cars'))
 
     car_type = models.CharField(max_length=15, choices=CARTYPE_CHOICES, blank=False, null=False, default=CITY_CAR)
-    status = models.BooleanField("Is vehicle available?", default=1, blank=True, null=False)
+    status = models.BooleanField("Is vehicle available?", default=1, blank=True, null=False, editable=False)
     mark = models.CharField(max_length=45, blank=False, null=False)
     model = models.CharField(max_length=45, blank=False, null=False)
     price_per_day = models.IntegerField(blank=False, null=False,
@@ -197,11 +199,10 @@ class Vehicle(models.Model):
                                                  null=True, on_delete=models.CASCADE)
     vehicle_information = models.OneToOneField(VehicleInformation, related_name='informations', blank=True, null=True,
                                                on_delete=models.CASCADE)
-    full_name = models.CharField(max_length=500, blank=True, null=True, editable=True)
+    full_name = models.CharField(max_length=500, blank=True, null=True, editable=False)
 
     def save(self, *args, **kwargs):
-        self.full_name = f'{self.car_type}', ", " + f'{self.mark}' + ", " + f'{self.model}' + ", " + f'{self.price_per_day}'\
-                         + " per day"
+        self.full_name = f'{self.car_type}, {self.mark}, {self.model}, {self.price_per_day} per day'
         super(Vehicle, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -222,18 +223,33 @@ class Rent(models.Model):
                                                 validators=[MinValueValidator(0), MaxValueValidator(99)])
     deposit = models.IntegerField(null=True, blank=True, editable=False)
     km_limit = models.IntegerField(default=0, validators=[MaxValueValidator(999)])
+    number_of_days = models.CharField(max_length=99, blank=True, null=True, editable=False)
+    price_per_day = models.IntegerField(blank=True, null=True, editable=False)
     payment = models.OneToOneField(Payment, related_name='payments', blank=True, null=True, on_delete=models.CASCADE)
     vehicle = models.OneToOneField(Vehicle, related_name='vehicles', blank=True, null=True, on_delete=models.CASCADE)
     client = models.ForeignKey(Client, related_name='clients', blank=True, null=True, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
-        vehicle_id = self.vehicle.pk
         days = (self.rent_end_date - self.rent_start_date).days
+        vehicle_id = self.vehicle.pk
         vehicle = Vehicle.objects.get(id=vehicle_id)
         price = vehicle.price_per_day
+        self.number_of_days = days
+        self.price_per_day = price
         self.final_price = (int(price) * int(days)) - ((int(price) * (days)) * self.discount_in_perc / 100)
         self.deposit = int(self.final_price * 0.2)
+        Vehicle.objects.filter(pk=vehicle_id).update(status=0)
         super(Rent, self).save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        vehicle_id = self.vehicle.pk
+        print(vehicle_id)
+        Vehicle.objects.filter(pk=vehicle_id).update(status=1)
+        super(Rent, self).delete(*args, **kwargs)
+
+    # def delete(self, *args, **kwargs):
+    #     Vehicle.objects.all().update(status=F(1))
+    #     return super(Rent, self).delete(*args, **kwargs)
 
     def clean(self):
         if self.rent_end_date < self.rent_start_date:
@@ -252,3 +268,15 @@ class Rent(models.Model):
                f'Km Limit: {self.km_limit}, ' \
                f'Price: {self.final_price}PLN , ' \
                f'Discount: {self.discount_in_perc}%'
+
+
+# @receiver(pre_delete, sender=Rent)
+# def change_status(sender, instance, **kwargs):
+#     print(Rent.vehicle.name)
+#     # Vehicle.objects.filter(id=sender.objects.get(id=instance.id)).update(status=0)
+
+
+
+
+
+
