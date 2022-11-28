@@ -3,10 +3,6 @@ from django.core.validators import MinLengthValidator, MaxLengthValidator, MinVa
     ValidationError
 import datetime
 
-# from django.db.models import F
-# from django.db.models.signals import pre_delete
-# from django.dispatch import receiver
-# from Tools.demo.mcast import sender
 
 def present_date_validator(value):
     if value < datetime.date.today():
@@ -147,16 +143,16 @@ class VehicleInformation(models.Model):
 
     year_of_production = models.IntegerField(choices=YEAR_CHOICES, default=datetime.datetime.now().year)
     license_plate_number = models.CharField(max_length=9, blank=False, null=False, validators=[
-        MinLengthValidator(6)])  # Individual plate numbers validated (shorter ones)
+        MinLengthValidator(6)])
     vin_number = models.CharField(max_length=17, blank=False, null=False,
-                                  validators=[MinLengthValidator(17)])  # VIN number got 17 chars
-    date_of_the_review = models.DateField(blank=False, null=False)  # Last date of formal review imposed by law
+                                  validators=[MinLengthValidator(17)])
+    date_of_the_review = models.DateField(blank=False, null=False)
     condition_comment = models.CharField(max_length=250, blank=True,
-                                         null=True)  # Not neccessery, comment about car condition
+                                         null=True)
     mileage = models.IntegerField(blank=False, null=False, validators=[MinValueValidator(1), MaxValueValidator(
-        300000)])  # Mileage < 200 000 km imposed by company
+        300000)])
     last_service = models.IntegerField(blank=False, null=True, validators=[MinValueValidator(5000), MaxValueValidator(
-        300000)])  # Mileage during last service inside of company [IN KM]
+        300000)])
     full_name = models.CharField(max_length=500, blank=True, null=True, editable=False)
 
     def save(self, *args, **kwargs):
@@ -164,7 +160,6 @@ class VehicleInformation(models.Model):
         super(VehicleInformation, self).save(*args, **kwargs)
 
     def __str__(self):
-        # km_to_service = (int(self.last_service + 15000)) - int(self.mileage)
         if self.condition_comment is not None:
             return f'VehInfo ID: {self.pk}, ' \
                    f'Plate: {self.license_plate_number}, ' \
@@ -226,7 +221,7 @@ class Rent(models.Model):
     number_of_days = models.CharField(max_length=99, blank=True, null=True, editable=False)
     price_per_day = models.IntegerField(blank=True, null=True, editable=False)
     payment = models.OneToOneField(Payment, related_name='payments', blank=True, null=True, on_delete=models.CASCADE)
-    vehicle = models.OneToOneField(Vehicle, related_name='vehicles', blank=True, null=True, on_delete=models.CASCADE)
+    vehicle = models.ForeignKey(Vehicle, related_name='vehicles', blank=True, null=True, on_delete=models.CASCADE)
     client = models.ForeignKey(Client, related_name='clients', blank=True, null=True, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
@@ -240,16 +235,6 @@ class Rent(models.Model):
         self.deposit = int(self.final_price * 0.2)
         Vehicle.objects.filter(pk=vehicle_id).update(status=0)
         super(Rent, self).save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        vehicle_id = self.vehicle.pk
-        print(vehicle_id)
-        Vehicle.objects.filter(pk=vehicle_id).update(status=1)
-        super(Rent, self).delete(*args, **kwargs)
-
-    # def delete(self, *args, **kwargs):
-    #     Vehicle.objects.all().update(status=F(1))
-    #     return super(Rent, self).delete(*args, **kwargs)
 
     def clean(self):
         if self.rent_end_date < self.rent_start_date:
@@ -268,15 +253,3 @@ class Rent(models.Model):
                f'Km Limit: {self.km_limit}, ' \
                f'Price: {self.final_price}PLN , ' \
                f'Discount: {self.discount_in_perc}%'
-
-
-# @receiver(pre_delete, sender=Rent)
-# def change_status(sender, instance, **kwargs):
-#     print(Rent.vehicle.name)
-#     # Vehicle.objects.filter(id=sender.objects.get(id=instance.id)).update(status=0)
-
-
-
-
-
-
