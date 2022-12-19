@@ -1,0 +1,398 @@
+query Clients {
+  clients {
+    id
+    firstName
+    lastName
+    birthDate
+    pesel
+    driverLicenceNumber
+    phoneNumber
+    email
+    gender
+  }
+}
+
+query Vehicles {
+  vehicles {
+    id
+    carType
+    status
+    mark
+    model
+    pricePerDay
+  }
+}
+
+query Rents {
+  rents {
+    id
+    rentStartDate
+    rentEndDate
+    finalPrice
+    kmLimit
+    vehicle {
+      id
+      carType
+      mark
+      model
+      pricePerDay
+    }
+    client {
+      id
+    	firstName
+    	lastName
+    	birthDate
+    	pesel
+    	driverLicenceNumber
+    	phoneNumber
+    	email
+    	gender
+    }
+  }
+}
+
+mutation createClient {
+  createClient1: createClient(
+    firstName: "Arek"
+    lastName: "Witasik"
+    birthDate: "2000-01-01"
+    pesel: "11111111111"
+    driverLicenceNumber: "1111111111111"
+    phoneNumber: "730948054"
+    email: "arek@arek.pl"
+    gender: "FEMALE"
+  ) {
+    client {
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+  createClient2: createClient(
+    firstName: "Michał"
+    lastName: "Nowak"
+    birthDate: "1977-02-02"
+    pesel: "00112233446"
+    driverLicenceNumber: "0011223344557"
+    phoneNumber: "111222334"
+    email: "michal@nowak.pl"
+    gender: "MALE"
+  ) {
+    client {
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+}
+
+mutation createVehicle {
+  createVehicle1: createVehicle(
+    carType: "LIMOUSINE"
+    status: true
+    mark: "VOLWO"
+    model: "V40"
+    pricePerDay: 200
+  ) {
+    vehicle {
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+  }
+  createVehicle2: createVehicle(
+    carType: "SUV"
+    status: true
+    mark: "AUDI"
+    model: "A6"
+    pricePerDay: 300
+  ) {
+    vehicle {
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+  }
+}
+
+mutation createRent {
+  createRent (
+    rentStartDate: "2022-01-01"
+    rentEndDate: "2022-02-02"
+    finalPrice: 1337
+    kmLimit: 200
+    vehicle: 15
+    client: 17
+  ) {
+    rent {
+      id
+      rentStartDate
+      rentEndDate
+      finalPrice
+      kmLimit
+      vehicle {
+        id
+      	carType
+      	status
+      	mark
+      	model
+      	pricePerDay
+      }
+      client {
+        id
+      	firstName
+      	lastName
+      	birthDate
+      	pesel
+      	driverLicenceNumber
+      	phoneNumber
+      	email
+      	gender
+      }
+    }
+  }
+}
+
+mutation deleteVehicle {
+  deleteVehicle1: deleteVehicle(vehicleData: {id: 2}){
+    success
+  }
+  deleteVehicle2: deleteVehicle(vehicleData: {id: 4}){
+    success
+  }
+}
+
+mutation deleteClient {
+  deleteClient(clientData: {id: 16}){
+    success
+  }
+}
+
+mutation deleteRent {
+  deleteRent(rentData: {id: 2}){
+    success
+  }
+}
+
+mutation updateClient {
+  updateClient(clientData: {id: 14, gender: "MALE"}) {
+    client {
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+}
+
+mutation updateVehicle {
+  updateVehicle(vehicleData: {id: 2, mark: "VOLVO"}) {
+    vehicle {
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+  }
+}
+
+mutation updateRent {
+  updateRent(rentData: {id: 3, vehicle: 16}){
+    rent{
+      id
+      rentStartDate
+      rentEndDate
+      finalPrice
+      kmLimit
+      vehicle{
+        id
+      	carType
+      	status
+      	mark
+      	model
+      	pricePerDay
+      }
+      client{
+        id
+      	firstName
+      	lastName
+      	birthDate
+      	pesel
+      	driverLicenceNumber
+      	phoneNumber
+      	email
+      	gender
+      }
+    }
+  }
+}
+
+query PriceRange {
+  rentPriceRange(maxPrice: 5000, minPrice: 3000){
+    id
+    rentStartDate
+    rentEndDate
+    finalPrice
+    kmLimit
+    vehicle{
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+    client{
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+}
+
+query StartDateRange{
+  rentStartDateRange(minStartDate: "2022-05-05"){
+    id
+    rentStartDate
+    rentEndDate
+    finalPrice
+    kmLimit
+    vehicle{
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+    client{
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+}
+
+query KmLimitRange{
+  rentKmLimitRange(minKmLimit: 150){
+    id
+    rentStartDate
+    rentEndDate
+    finalPrice
+    kmLimit
+    vehicle{
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+    client{
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+}
+
+query ClientGender{
+  rentClientGender(gender: "MALE"){
+    id
+    rentStartDate
+    rentEndDate
+    finalPrice
+    kmLimit
+    vehicle{
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+    client{
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+}
+
+query VehicleMark {
+  rentVehicleMarkAndModel(mark: "AUDI", model: "Q5"){
+    id
+    rentStartDate
+    rentEndDate
+    finalPrice
+    kmLimit
+    vehicle{
+      id
+      carType
+      status
+      mark
+      model
+      pricePerDay
+    }
+    client{
+      id
+      firstName
+      lastName
+      birthDate
+      pesel
+      driverLicenceNumber
+      phoneNumber
+      email
+      gender
+    }
+  }
+}
